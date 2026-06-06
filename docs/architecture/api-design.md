@@ -32,12 +32,14 @@
 | PUT | `/api/retrospective-settings` | 프리셋 켜고 끄기 |
 
 ## BFF API (Next.js route handler, `frontend/src/app/api/*`) — 화면 단위 조합 (로직 없음)
-| 메서드 | 경로 | 하는 일 |
-|---|---|---|
-| GET | `/api/home` | 유저정보 + 오늘 결정 + 켜진 회고 묶기 |
-| GET | `/api/decisions` | 목록 (backend 거의 그대로 전달) |
-| POST | `/api/decisions` | 기록 폼 제출 |
-| GET | `/api/retrospective` | 기간 조회 + flashback 조합 |
+| 메서드 | 경로 | 하는 일 | 쓰는 화면 |
+|---|---|---|---|
+| GET | `/api/retrospective` | 기간 결정 + flashback + 감정 분포 묶기 | S1 회고 (랜딩) |
+| GET | `/api/decisions` | 목록 (backend 거의 그대로 전달) | S3 목록 |
+| POST | `/api/decisions` | 기록 폼 제출 | S2 기록 |
+| GET | `/api/decisions/{id}` | 상세 (backend 거의 그대로 전달) | S4 상세 |
+
+> 구조 C 채택으로 홈 화면을 두지 않으므로 `/api/home`은 없음.
 
 ## 결정 사항 (모두 확정)
 - ✅ **결정 수정 불가, 삭제만** (MVP). 수정은 v2에서 원본 보존 방식으로.

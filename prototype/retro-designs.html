@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ripple — 회고 화면 디자인 비교</title>
+<!-- 버리는 목업. "회고 첫 화면"을 어떤 형식으로 할지 3안 비교. 더미 데이터. -->
+<style>
+  :root{
+    --bg:#f4f6f8; --surface:#fff; --ink:#1f2a30; --sub:#6b7a82;
+    --line:#e6ebee; --accent:#3a7bd5; --accent-soft:#eaf1fb; --shadow:0 2px 10px rgba(31,42,48,.06);
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:#dde3e8; color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+    padding:28px 16px;}
+  .head{text-align:center; margin-bottom:22px}
+  .head h1{margin:0 0 4px; font-size:20px}
+  .head p{margin:0; font-size:13px; color:#5b676d}
+  .row{display:flex; flex-wrap:wrap; gap:30px; justify-content:center; align-items:flex-start}
+  .col{display:flex; flex-direction:column; align-items:center; gap:10px}
+  .label{font-weight:700; font-size:15px}
+  .label small{display:block; font-weight:400; color:#5b676d; font-size:12px; margin-top:2px; max-width:300px; text-align:center}
+
+  .phone{width:330px; height:680px; background:var(--bg); border-radius:36px; border:10px solid #11181c;
+    box-shadow:0 16px 36px rgba(0,0,0,.26); overflow:hidden; position:relative; display:flex; flex-direction:column}
+  .notch{position:absolute; top:0; left:50%; transform:translateX(-50%); width:110px; height:20px;
+    background:#11181c; border-radius:0 0 13px 13px; z-index:30}
+  .hdr{display:flex; align-items:center; gap:8px; padding:28px 16px 10px; border-bottom:1px solid var(--line); background:var(--surface)}
+  .hdr .title{font-weight:700; font-size:17px; flex:1}
+  .hdr .icon{font-size:17px; color:var(--sub)}
+  .body{flex:1; overflow-y:auto; padding:14px 16px 70px}
+  .tabbar{position:absolute; bottom:0; left:0; right:0; height:58px; background:var(--surface);
+    border-top:1px solid var(--line); display:flex; align-items:center; justify-content:space-around; z-index:20}
+  .tabbar .t{font-size:11px; color:var(--sub); display:flex; flex-direction:column; align-items:center; gap:2px; flex:1}
+  .tabbar .t.on{color:var(--accent)} .tabbar .t .i{font-size:18px}
+  .tabbar .fab{width:48px; height:48px; border-radius:50%; background:var(--accent); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:26px; margin-top:-18px; flex:0 0 auto;
+    box-shadow:0 6px 14px rgba(58,123,213,.45)}
+
+  .muted{color:var(--sub); font-size:13px}
+  .section-label{font-size:12px; color:var(--sub); margin:16px 2px 8px; font-weight:600}
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:13px; padding:11px 13px; box-shadow:var(--shadow); margin-bottom:9px}
+  .card .date{font-size:12px; color:var(--sub)} .card .summary{font-size:14px; font-weight:600; margin:3px 0 6px}
+  .emo{font-size:11px; background:var(--accent-soft); padding:3px 8px; border-radius:999px; display:inline-flex; gap:4px; align-items:center}
+
+  .periodtabs{display:flex; gap:6px; overflow-x:auto; padding:2px 0}
+  .periodtabs button{white-space:nowrap; border:1px solid var(--line); background:#fff; border-radius:999px;
+    padding:5px 13px; font-size:12px; color:var(--sub); cursor:pointer}
+  .periodtabs button.on{background:var(--ink); color:#fff; border-color:var(--ink)}
+  .periodnav{display:flex; align-items:center; justify-content:center; gap:16px; padding:10px 0; font-weight:700; font-size:15px}
+  .periodnav span{cursor:pointer; color:var(--sub)}
+
+  /* flashback */
+  .fb{background:linear-gradient(135deg,#eef3fb,#f7f1ff); border:1px solid #e4e8f5; border-radius:16px; padding:16px}
+  .fb .tag{font-size:11px; color:var(--accent); font-weight:700}
+  .fb .q{margin-top:8px; line-height:1.5; color:#3a3550; font-weight:600}
+
+  /* A: 캘린더 */
+  .cal-strip{background:linear-gradient(135deg,#eef3fb,#f7f1ff); border:1px solid #e4e8f5; border-radius:12px; padding:10px 12px; margin-bottom:10px}
+  .cal-strip .tag{font-size:11px; color:var(--accent); font-weight:700}
+  .cal-strip .q{font-size:13px; color:#3a3550; margin-top:3px}
+  .cal{width:100%; border-collapse:collapse}
+  .cal th{font-size:11px; color:var(--sub); font-weight:600; padding:6px 0}
+  .cal td{height:38px; text-align:center; vertical-align:middle; font-size:13px; color:var(--ink); position:relative}
+  .cal td .d{display:inline-flex; flex-direction:column; align-items:center; gap:1px; width:34px; height:34px; justify-content:center; border-radius:9px; cursor:pointer}
+  .cal td.has .d{font-weight:700}
+  .cal td .dot{font-size:11px; line-height:1}
+  .cal td.today .d{background:var(--accent); color:#fff}
+  .cal td.sel .d{outline:2px solid var(--accent)}
+  .cal td.off{color:#c4ccd1}
+
+  /* B: 미니멀 */
+  .hero{background:linear-gradient(135deg,#e9f0fb,#f6eefc); border:1px solid #e4e8f5; border-radius:20px; padding:24px 18px; text-align:left}
+  .hero .tag{font-size:12px; color:var(--accent); font-weight:700; letter-spacing:.3px}
+  .hero .q{font-size:21px; line-height:1.5; color:#352f4d; font-weight:700; margin-top:12px}
+  .summary-card{background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:16px; box-shadow:var(--shadow); margin-top:14px}
+  .summary-card .big{font-size:15px; line-height:1.6}
+  .bar{display:flex; height:12px; border-radius:999px; overflow:hidden; margin-top:12px}
+  .bar > i{display:block; height:100%}
+  .legend{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; font-size:11px; color:var(--sub)}
+  .legend i{display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:4px; vertical-align:middle}
+  .seebtn{margin-top:16px; width:100%; padding:13px; border:1px solid var(--line); background:#fff; border-radius:12px;
+    font-size:14px; font-weight:600; color:var(--ink); box-shadow:var(--shadow); cursor:pointer}
+
+  /* C: 타임라인 */
+  .tl{position:relative; margin-top:6px; padding-left:26px}
+  .tl::before{content:""; position:absolute; left:9px; top:6px; bottom:6px; width:2px; background:var(--line)}
+  .tl .node{position:relative; margin-bottom:16px}
+  .tl .node .dot{position:absolute; left:-26px; top:2px; width:20px; height:20px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 0 1px var(--line)}
+  .tl .node .date{font-size:11px; color:var(--sub)}
+  .tl .node .summary{font-size:14px; font-weight:600; margin-top:2px; line-height:1.4}
+  .tl .node .emo{margin-top:5px}
+  .tl .node.fbnode{background:linear-gradient(135deg,#eef3fb,#f7f1ff); border:1px solid #e4e8f5; border-radius:14px; padding:12px; margin-left:-6px}
+  .tl .node.fbnode .dot{left:-20px; background:var(--accent)}
+  .tl .node.fbnode .tag{font-size:11px; color:var(--accent); font-weight:700}
+  .tl .node.fbnode .q{font-size:14px; color:#3a3550; margin-top:5px; line-height:1.5}
+</style>
+</head>
+<body>
+  <div class="head">
+    <h1>Ripple — "회고" 첫 화면 디자인 3안 비교</h1>
+    <p>같은 데이터(2026년 6월), 다른 형식. 캘린더형 / 미니멀 감성형 / 타임라인형</p>
+  </div>
+
+  <div class="row">
+
+    <!-- ===== A. 캘린더형 ===== -->
+    <div class="col">
+      <div class="label">A · 캘린더형<small>한 달을 한눈에. 결정한 날에 감정 이모지. 날짜를 누르면 그날 결정.</small></div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="hdr"><div class="title">되돌아보기</div><div class="icon">⚙</div></div>
+        <div class="body">
+          <div class="cal-strip"><div class="tag">✦ 1년 전 오늘</div><div class="q">이직을 결심했던 날</div></div>
+          <div class="periodnav"><span>◀</span> 2026년 6월 <span>▶</span></div>
+          <table class="cal">
+            <tr><th>일</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th>토</th></tr>
+            <tr><td class="off"><div class="d">31</div></td><td><div class="d">1</div></td><td class="has"><div class="d" onclick="selDay(this,2)">2<span class="dot">🌊</span></div></td><td><div class="d">3</div></td><td><div class="d">4</div></td><td><div class="d">5</div></td><td class="has"><div class="d" onclick="selDay(this,6)">6<span class="dot">✨</span></div></td></tr>
+            <tr><td class="today"><div class="d">7</div></td><td><div class="d">8</div></td><td class="has"><div class="d" onclick="selDay(this,9)">9<span class="dot">😌</span></div></td><td><div class="d">10</div></td><td><div class="d">11</div></td><td><div class="d">12</div></td><td><div class="d">13</div></td></tr>
+            <tr><td><div class="d">14</div></td><td><div class="d">15</div></td><td><div class="d">16</div></td><td class="has"><div class="d" onclick="selDay(this,17)">17<span class="dot">🌱</span></div></td><td><div class="d">18</div></td><td><div class="d">19</div></td><td><div class="d">20</div></td></tr>
+            <tr><td><div class="d">21</div></td><td class="has"><div class="d" onclick="selDay(this,22)">22<span class="dot">😨</span></div></td><td><div class="d">23</div></td><td><div class="d">24</div></td><td><div class="d">25</div></td><td><div class="d">26</div></td><td><div class="d">27</div></td></tr>
+            <tr><td><div class="d">28</div></td><td><div class="d">29</div></td><td><div class="d">30</div></td><td class="off"><div class="d">1</div></td><td class="off"><div class="d">2</div></td><td class="off"><div class="d">3</div></td><td class="off"><div class="d">4</div></td></tr>
+          </table>
+          <div class="section-label" id="cal-daylabel">6월 6일의 결정</div>
+          <div class="card"><div class="date">오전 9:14</div><div class="summary">새 사이드 프로젝트를 시작하기로 했다</div><span class="emo">✨ 설렘</span></div>
+          <div class="card"><div class="date">오전 7:30</div><div class="summary">아침마다 30분 달리기로 정함</div><span class="emo">🌱 희망</span></div>
+        </div>
+        <div class="tabbar">
+          <div class="t on"><span class="i">🌙</span>회고</div><div class="fab">+</div><div class="t"><span class="i">📋</span>목록</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== B. 미니멀 감성형 ===== -->
+    <div class="col">
+      <div class="label">B · 미니멀 감성형<small>flashback이 주인공. 숫자·목록은 최소. 한 줄 요약 + 감정 막대 + "결정 보기" 버튼.</small></div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="hdr"><div class="title">되돌아보기</div><div class="icon">⚙</div></div>
+        <div class="body">
+          <div class="periodtabs" style="margin-bottom:14px">
+            <button>일간</button><button>주간</button><button class="on">월간</button><button>연간</button>
+          </div>
+          <div class="hero">
+            <div class="tag">✦ 1년 전 오늘</div>
+            <div class="q">"당신은 이직을 결심했어요. 두려움 속에서도 한 걸음 내디뎠죠."</div>
+          </div>
+          <div class="summary-card">
+            <div class="big">이번 달, <b>8개의 결정</b>을 내렸어요.<br/>주로 <b>✨ 설렘</b> 속에서요.</div>
+            <div class="bar">
+              <i style="width:45%; background:#f3b14b"></i>
+              <i style="width:25%; background:#5aa9e6"></i>
+              <i style="width:18%; background:#8fbf73"></i>
+              <i style="width:12%; background:#c47b7b"></i>
+            </div>
+            <div class="legend">
+              <span><i style="background:#f3b14b"></i>설렘</span>
+              <span><i style="background:#5aa9e6"></i>평온</span>
+              <span><i style="background:#8fbf73"></i>희망</span>
+              <span><i style="background:#c47b7b"></i>두려움</span>
+            </div>
+          </div>
+          <button class="seebtn">이달의 결정 8개 보기 →</button>
+        </div>
+        <div class="tabbar">
+          <div class="t on"><span class="i">🌙</span>회고</div><div class="fab">+</div><div class="t"><span class="i">📋</span>목록</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== C. 타임라인형 ===== -->
+    <div class="col">
+      <div class="label">C · 타임라인형<small>결정을 시간 흐름의 이야기로. 감정별 색 점. flashback은 특별 노드.</small></div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="hdr"><div class="title">되돌아보기</div><div class="icon">⚙</div></div>
+        <div class="body">
+          <div class="periodtabs">
+            <button>일간</button><button>주간</button><button class="on">월간</button><button>연간</button>
+          </div>
+          <div class="periodnav"><span>◀</span> 2026년 6월 <span>▶</span></div>
+          <div class="tl">
+            <div class="node fbnode">
+              <div class="dot"></div>
+              <div class="tag">✦ 1년 전 오늘</div>
+              <div class="q">이직을 결심했던 날. 그때의 마음, 지금은?</div>
+            </div>
+            <div class="node"><div class="dot" style="background:#f3b14b"></div><div class="date">6월 6일</div><div class="summary">새 사이드 프로젝트를 시작하기로 했다</div><div><span class="emo">✨ 설렘</span></div></div>
+            <div class="node"><div class="dot" style="background:#8fbf73"></div><div class="date">6월 6일</div><div class="summary">아침마다 30분 달리기로 정함</div><div><span class="emo">🌱 희망</span></div></div>
+            <div class="node"><div class="dot" style="background:#5aa9e6"></div><div class="date">6월 2일</div><div class="summary">노트북을 새로 사지 않기로 했다</div><div><span class="emo">🌊 평온</span></div></div>
+            <div class="node"><div class="dot" style="background:#c47b7b"></div><div class="date">5월 28일</div><div class="summary">이직 제안을 수락했다</div><div><span class="emo">😨 두려움</span></div></div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="t on"><span class="i">🌙</span>회고</div><div class="fab">+</div><div class="t"><span class="i">📋</span>목록</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+  var dayData = {
+    2:{label:"6월 2일의 결정", cards:[["오후 1:05","노트북을 새로 사지 않기로 했다","🌊 평온"]]},
+    6:{label:"6월 6일의 결정", cards:[["오전 9:14","새 사이드 프로젝트를 시작하기로 했다","✨ 설렘"],["오전 7:30","아침마다 30분 달리기로 정함","🌱 희망"]]},
+    9:{label:"6월 9일의 결정", cards:[["오후 8:00","주말 모임 약속을 미뤘다","😌 확신"]]},
+    17:{label:"6월 17일의 결정", cards:[["오전 11:20","새 강의를 등록했다","🌱 희망"]]},
+    22:{label:"6월 22일의 결정", cards:[["오후 3:40","큰 지출을 보류했다","😨 두려움"]]}
+  };
+  function selDay(el, day){
+    document.querySelectorAll('.cal td').forEach(td=>td.classList.remove('sel'));
+    el.closest('td').classList.add('sel');
+    var d = dayData[day]; if(!d) return;
+    document.getElementById('cal-daylabel').textContent = d.label;
+    var html='';
+    d.cards.forEach(c=>{ html += '<div class="card"><div class="date">'+c[0]+'</div><div class="summary">'+c[1]+'</div><span class="emo">'+c[2]+'</span></div>'; });
+    var lbl=document.getElementById('cal-daylabel');
+    // 라벨 다음 카드들 제거 후 새로 삽입
+    var n=lbl.nextElementSibling; while(n){ var t=n.nextElementSibling; n.remove(); n=t; }
+    lbl.insertAdjacentHTML('afterend', html);
+  }
+</script>
+</body>
+</html>

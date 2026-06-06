@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ripple — 회고 통합안</title>
+<!-- 버리는 목업. flashback + 감정요약바 + (캘린더⇄타임라인 토글) 통합. 더미 데이터. -->
+<style>
+  :root{
+    --bg:#f4f6f8; --surface:#fff; --ink:#1f2a30; --sub:#6b7a82;
+    --line:#e6ebee; --accent:#3a7bd5; --accent-soft:#eaf1fb; --shadow:0 2px 10px rgba(31,42,48,.06);
+    --c-conf:#7d8aa8; --c-excite:#f3b14b; --c-calm:#5aa9e6; --c-relief:#9aa7b0; --c-hope:#8fbf73; --c-hesit:#c9a24b; --c-anx:#d39a55; --c-fear:#c47b7b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:#dde3e8; color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif; padding:28px 16px;
+    display:flex; flex-direction:column; align-items:center; gap:16px}
+  .head{text-align:center}
+  .head h1{margin:0 0 4px; font-size:20px}
+  .head p{margin:0; font-size:13px; color:#5b676d}
+
+  .phone{width:340px; height:720px; background:var(--bg); border-radius:38px; border:10px solid #11181c;
+    box-shadow:0 18px 40px rgba(0,0,0,.28); overflow:hidden; position:relative; display:flex; flex-direction:column}
+  .notch{position:absolute; top:0; left:50%; transform:translateX(-50%); width:120px; height:22px; background:#11181c; border-radius:0 0 14px 14px; z-index:30}
+  .hdr{display:flex; align-items:center; gap:8px; padding:30px 16px 10px; border-bottom:1px solid var(--line); background:var(--surface)}
+  .hdr .title{font-weight:700; font-size:17px; flex:1}
+  .hdr .icon{font-size:18px; color:var(--sub); cursor:pointer}
+  .body{flex:1; overflow-y:auto; padding:14px 16px 80px}
+  .tabbar{position:absolute; bottom:0; left:0; right:0; height:64px; background:var(--surface); border-top:1px solid var(--line);
+    display:flex; align-items:center; justify-content:space-around; z-index:20}
+  .tabbar .t{font-size:11px; color:var(--sub); display:flex; flex-direction:column; align-items:center; gap:2px; flex:1}
+  .tabbar .t.on{color:var(--accent)} .tabbar .t .i{font-size:19px}
+  .tabbar .fab{width:54px; height:54px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:28px; margin-top:-20px; flex:0 0 auto; box-shadow:0 6px 14px rgba(58,123,213,.45)}
+
+  .muted{color:var(--sub); font-size:13px}
+  .section-label{font-size:12px; color:var(--sub); margin:16px 2px 8px; font-weight:600}
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:13px; padding:11px 13px; box-shadow:var(--shadow); margin-bottom:9px; cursor:pointer}
+  .card .date{font-size:12px; color:var(--sub)} .card .summary{font-size:14px; font-weight:600; margin:3px 0 6px; line-height:1.35}
+  .emo{font-size:11px; background:var(--accent-soft); padding:3px 8px; border-radius:999px; display:inline-flex; gap:4px; align-items:center}
+
+  /* period */
+  .periodtabs{display:flex; gap:6px; overflow-x:auto; padding:2px 0 4px}
+  .periodtabs button{white-space:nowrap; border:1px solid var(--line); background:#fff; border-radius:999px; padding:5px 13px; font-size:12px; color:var(--sub); cursor:pointer}
+  .periodtabs button.on{background:var(--ink); color:#fff; border-color:var(--ink)}
+  .periodnav{display:flex; align-items:center; justify-content:center; gap:20px; padding:16px 0 6px}
+  .periodnav .arrow{width:34px; height:34px; border-radius:50%; background:#fff; border:1px solid var(--line); box-shadow:var(--shadow); display:flex; align-items:center; justify-content:center; color:var(--ink); font-size:16px; cursor:pointer}
+  .periodnav .arrow:active{background:#f0f3f5}
+  .periodnav .lbl{font-weight:700; font-size:16px; min-width:118px; text-align:center}
+
+  /* flashback (compact) */
+  .fb{background:linear-gradient(135deg,#eef3fb,#f7f1ff); border:1px solid #e4e8f5; border-radius:16px; padding:16px 18px; cursor:pointer; margin-top:14px}
+  .fb .tag{font-size:11px; color:var(--accent); font-weight:700}
+  .fb .q{font-size:15px; color:#3a3550; font-weight:600; margin-top:6px; line-height:1.45}
+
+  /* 감정 요약 바 */
+  .sumbar{margin-top:26px}
+  .sumbar .txt{font-size:14px; color:var(--ink); margin-bottom:12px}
+  .sumbar .txt b{font-weight:700}
+  .bar{display:flex; height:20px; border-radius:999px; overflow:hidden}
+  .bar > i{display:block; height:100%}
+  .legend{display:flex; justify-content:space-between; gap:6px; margin-top:12px; font-size:11px; color:var(--sub); white-space:nowrap}
+  .legend span{display:inline-flex; align-items:center}
+  .legend i{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px}
+
+  /* 뷰 토글 */
+  .viewtoggle{display:flex; gap:4px; background:#eef2f4; border-radius:11px; padding:3px; margin:30px 0 10px}
+  .viewtoggle button{flex:1; border:none; background:transparent; padding:8px; border-radius:8px; font-size:13px; color:var(--sub); cursor:pointer; font-weight:600}
+  .viewtoggle button.on{background:#fff; color:var(--ink); box-shadow:var(--shadow)}
+
+  /* 캘린더 (A안: 감정 색 점 여러 개) */
+  .cal{width:100%; border-collapse:collapse; table-layout:fixed; margin-top:4px}
+  .cal th{font-size:11px; color:var(--sub); font-weight:600; padding:4px 0; width:14.285%}
+  .cal td{width:14.285%; height:44px; text-align:center; vertical-align:top; padding-top:4px; overflow:hidden}
+  .cal td .d{display:inline-flex; flex-direction:column; align-items:center; gap:3px; width:34px; padding:3px 0; border-radius:10px; cursor:pointer}
+  .cal td.has .d .num{font-weight:700}
+  .cal td .num{font-size:13px; line-height:1}
+  .cal td .dots{display:flex; gap:3px; justify-content:center; align-items:center; height:8px}
+  .cal td .dots i{width:6px; height:6px; border-radius:50%; display:inline-block}
+  .cal td .dots .plus{font-size:9px; color:var(--sub); line-height:1; margin-left:1px}
+  .cal td.today .d{background:var(--accent); color:#fff}
+  .cal td.sel .d{outline:2px solid var(--accent)}
+  .cal td.off .num{color:#c4ccd1}
+
+  /* 타임라인 */
+  .tl{position:relative; margin-top:12px; padding-left:26px}
+  .tl::before{content:""; position:absolute; left:9px; top:6px; bottom:6px; width:2px; background:var(--line)}
+  .tl .node{position:relative; margin-bottom:18px; cursor:pointer}
+  .tl .node .dot{position:absolute; left:-26px; top:2px; width:20px; height:20px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 0 1px var(--line)}
+  .tl .node .date{font-size:11px; color:var(--sub)}
+  .tl .node .summary{font-size:14px; font-weight:600; margin-top:2px; line-height:1.4}
+  .tl .node .emo{margin-top:5px}
+</style>
+</head>
+<body>
+  <div class="head">
+    <h1>Ripple — 회고 통합안</h1>
+    <p>flashback + 감정 요약바 + (캘린더 ⇄ 타임라인 토글) · 동시 노출은 캘린더/타임라인만 양자택일</p>
+  </div>
+
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="hdr"><div class="title">되돌아보기</div><div class="icon">⚙</div></div>
+    <div class="body">
+
+      <div class="periodtabs">
+        <button onclick="pick(this)">일간</button>
+        <button onclick="pick(this)">주간</button>
+        <button class="on" onclick="pick(this)">월간</button>
+        <button onclick="pick(this)">연간</button>
+      </div>
+      <div class="periodnav"><div class="arrow">‹</div><div class="lbl">2026년 6월</div><div class="arrow">›</div></div>
+
+      <!-- 1) flashback -->
+      <div class="fb">
+        <div class="tag">✦ 1년 전 오늘</div>
+        <div class="q">"이직을 결심했던 날. 두려움 속에서도 한 걸음 내디뎠죠."</div>
+      </div>
+
+      <!-- 2) 감정 요약 바 -->
+      <div class="sumbar">
+        <div class="txt">이번 달 <b>12개 결정</b> · 주로 <b>✨ 설렘</b></div>
+        <div class="bar">
+          <i style="width:25%; background:var(--c-excite)"></i>
+          <i style="width:25%; background:var(--c-calm)"></i>
+          <i style="width:25%; background:var(--c-hope)"></i>
+          <i style="width:17%; background:var(--c-fear)"></i>
+          <i style="width:8%; background:var(--c-conf)"></i>
+        </div>
+        <div class="legend">
+          <span><i style="background:var(--c-excite)"></i>설렘 3</span>
+          <span><i style="background:var(--c-calm)"></i>평온 3</span>
+          <span><i style="background:var(--c-hope)"></i>희망 3</span>
+          <span><i style="background:var(--c-fear)"></i>두려움 2</span>
+          <span><i style="background:var(--c-conf)"></i>확신 1</span>
+        </div>
+      </div>
+
+      <!-- 3) 뷰 토글 (기본=타임라인) -->
+      <div class="viewtoggle">
+        <button class="on" id="v-tl" onclick="setView('tl')">📜 타임라인</button>
+        <button id="v-cal" onclick="setView('cal')">📅 캘린더</button>
+      </div>
+
+      <!-- 캘린더 뷰 -->
+      <div id="view-cal" style="display:none">
+        <table class="cal" id="cal-grid"></table>
+        <div class="section-label" id="cal-daylabel">6월 6일의 결정</div>
+        <div id="cal-daylist"></div>
+      </div>
+
+      <!-- 타임라인 뷰 -->
+      <div id="view-tl">
+        <div class="tl">
+          <div class="node"><div class="dot" style="background:var(--c-excite)"></div><div class="date">6월 6일</div><div class="summary">새 사이드 프로젝트를 시작하기로 했다</div><div><span class="emo">✨ 설렘</span></div></div>
+          <div class="node"><div class="dot" style="background:var(--c-hope)"></div><div class="date">6월 6일</div><div class="summary">아침마다 30분 달리기로 정함</div><div><span class="emo">🌱 희망</span></div></div>
+          <div class="node"><div class="dot" style="background:var(--c-calm)"></div><div class="date">6월 2일</div><div class="summary">노트북을 새로 사지 않기로 했다</div><div><span class="emo">🌊 평온</span></div></div>
+          <div class="node"><div class="dot" style="background:var(--c-fear)"></div><div class="date">5월 28일</div><div class="summary">이직 제안을 수락했다</div><div><span class="emo">😨 두려움</span></div></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="tabbar">
+      <div class="t on"><span class="i">🌙</span>회고</div>
+      <div class="fab">+</div>
+      <div class="t"><span class="i">📋</span>목록</div>
+    </div>
+  </div>
+
+  <div class="head"><p style="max-width:360px">기본은 타임라인. 상단 토글로 캘린더 전환 → 날짜(✨🌊😨)를 누르면 그날 결정이 아래에 떠요.</p></div>
+
+<script>
+  var COLOR={conf:'var(--c-conf)',excite:'var(--c-excite)',calm:'var(--c-calm)',relief:'var(--c-relief)',hope:'var(--c-hope)',hesit:'var(--c-hesit)',anx:'var(--c-anx)',fear:'var(--c-fear)'};
+  // 하루별 결정들의 감정 코드 (개수 = 배열 길이) → 캘린더 점
+  var EMO = { 2:['calm'], 6:['excite','hope'], 9:['conf'], 12:['excite','calm','hope','fear'], 17:['hope'], 22:['fear','calm','excite'] };
+  var TODAY=7;
+
+  var dayData = {
+    2:{label:"6월 2일의 결정", cards:[["오후 1:05","노트북을 새로 사지 않기로 했다","🌊 평온"]]},
+    6:{label:"6월 6일의 결정", cards:[["오전 9:14","새 사이드 프로젝트를 시작하기로 했다","✨ 설렘"],["오전 7:30","아침마다 30분 달리기로 정함","🌱 희망"]]},
+    9:{label:"6월 9일의 결정", cards:[["오후 8:00","주말 모임 약속을 미뤘다","😌 확신"]]},
+    12:{label:"6월 12일의 결정", cards:[["오후 9:10","이사할 동네를 정했다","✨ 설렘"],["오후 2:00","계약을 하루 더 미뤘다","🌊 평온"],["오전 11:00","대출 한도를 알아보기로 했다","🌱 희망"],["오전 8:20","회사에 재택을 요청했다","😨 두려움"]]},
+    17:{label:"6월 17일의 결정", cards:[["오전 11:20","새 강의를 등록했다","🌱 희망"]]},
+    22:{label:"6월 22일의 결정", cards:[["오후 3:40","큰 지출을 보류했다","😨 두려움"],["오후 1:00","여행지를 바꿨다","🌊 평온"],["오전 10:00","팀 이동을 신청했다","✨ 설렘"]]}
+  };
+
+  // 캘린더 그리드 생성 (2026년 6월, 1일=월요일, 0=이전달 31)
+  function cellNum(i){ if(i===0)return{n:31,off:true}; if(i<=30)return{n:i,off:false}; return{n:i-30,off:true}; }
+  function buildCal(){
+    var html='<tr><th>일</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th>토</th></tr>';
+    for(var w=0; w<6; w++){
+      html+='<tr>';
+      for(var d=0; d<7; d++){
+        var i=w*7+d, c=cellNum(i), june=!c.off, arr=june?EMO[c.n]:null;
+        var cls=[]; if(c.off)cls.push('off'); if(arr)cls.push('has'); if(june&&c.n===TODAY)cls.push('today'); if(c.n===6&&june)cls.push('sel');
+        var dots='';
+        if(arr){
+          var pts=arr.slice(0,3).map(e=>'<i style="background:'+COLOR[e]+'"></i>').join('');
+          dots='<span class="dots">'+pts+(arr.length>3?'<span class="plus">+</span>':'')+'</span>';
+        }
+        var click=arr?(' onclick="selDay(this,'+c.n+')"'):'';
+        html+='<td class="'+cls.join(' ')+'"><div class="d"'+click+'><span class="num">'+c.n+'</span>'+dots+'</div></td>';
+      }
+      html+='</tr>';
+    }
+    document.getElementById('cal-grid').innerHTML=html;
+  }
+  function renderDay(day){
+    var d=dayData[day]; if(!d) return;
+    document.getElementById('cal-daylabel').textContent=d.label;
+    var html=''; d.cards.forEach(c=>{ html+='<div class="card"><div class="date">'+c[0]+'</div><div class="summary">'+c[1]+'</div><span class="emo">'+c[2]+'</span></div>'; });
+    document.getElementById('cal-daylist').innerHTML=html;
+  }
+  function selDay(el, day){
+    document.querySelectorAll('.cal td').forEach(td=>td.classList.remove('sel'));
+    el.closest('td').classList.add('sel');
+    renderDay(day);
+  }
+  function setView(v){
+    document.getElementById('v-cal').classList.toggle('on', v==='cal');
+    document.getElementById('v-tl').classList.toggle('on', v==='tl');
+    document.getElementById('view-cal').style.display = v==='cal'?'block':'none';
+    document.getElementById('view-tl').style.display  = v==='tl'?'block':'none';
+  }
+  function pick(el){ el.parentNode.querySelectorAll('button').forEach(b=>b.classList.remove('on')); el.classList.add('on'); }
+  buildCal();
+  renderDay(6); // 기본 선택일
+</script>
+</body>
+</html>
