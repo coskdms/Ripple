@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ripple — UX 목업 (버리는 프로토타입)</title>
+<!--
+  ⚠️ 버리는 목업(throwaway). 실제 앱 코드 아님. 화면 모양/흐름 확인용.
+  구조 C: "회고"가 첫 화면(앱의 얼굴). 홈 탭 제거. 기록은 부가(가운데 +).
+  열어보기: 이 파일을 브라우저로 더블클릭. 더미 데이터, API 연결 없음.
+-->
+<style>
+  :root{
+    --bg:#f4f6f8; --surface:#ffffff; --ink:#1f2a30; --sub:#6b7a82;
+    --line:#e6ebee; --accent:#3a7bd5; --accent-soft:#eaf1fb;
+    --shadow:0 2px 10px rgba(31,42,48,.06);
+    --c-conf:#7d8aa8; --c-excite:#f3b14b; --c-calm:#5aa9e6; --c-relief:#9aa7b0;
+    --c-hope:#8fbf73; --c-hesit:#c9a24b; --c-anx:#d39a55; --c-fear:#c47b7b;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  body{
+    margin:0; background:#dde3e8; color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+    display:flex; flex-wrap:wrap; gap:28px; justify-content:center;
+    padding:32px 16px;
+  }
+  .intro{width:100%; text-align:center; color:#48555c}
+  .intro h1{margin:0 0 4px; font-size:20px}
+  .intro p{margin:0; font-size:13px; color:#6b7a82}
+
+  /* 폰 프레임 */
+  .phone{
+    width:340px; height:720px; background:var(--bg); border-radius:38px;
+    border:10px solid #11181c; box-shadow:0 18px 40px rgba(0,0,0,.28);
+    overflow:hidden; position:relative; display:flex; flex-direction:column;
+  }
+  .notch{position:absolute; top:0; left:50%; transform:translateX(-50%);
+    width:120px; height:22px; background:#11181c; border-radius:0 0 14px 14px; z-index:30}
+
+  /* 화면 컨테이너 */
+  .screen{display:none; flex-direction:column; height:100%; }
+  .screen.active{display:flex}
+  .body{flex:1; overflow-y:auto; padding:14px 16px 84px}
+
+  /* 헤더 */
+  .hdr{display:flex; align-items:center; gap:8px; padding:30px 16px 10px;
+    border-bottom:1px solid var(--line); background:var(--surface)}
+  .hdr .title{font-weight:700; font-size:17px; flex:1}
+  .hdr .icon{font-size:18px; color:var(--sub); cursor:pointer}
+  .hdr .back{cursor:pointer; font-size:18px; color:var(--ink)}
+  .brand{font-weight:800; letter-spacing:.5px}
+  .brand .dot{color:var(--accent)}
+
+  /* 하단 탭바 (회고 · + · 목록) */
+  .tabbar{position:absolute; bottom:0; left:0; right:0; height:64px; background:var(--surface);
+    border-top:1px solid var(--line); display:flex; align-items:center; justify-content:space-around;
+    padding-bottom:4px; z-index:20}
+  .tabbar .tab{display:flex; flex-direction:column; align-items:center; gap:2px;
+    font-size:11px; color:var(--sub); cursor:pointer; flex:1}
+  .tabbar .tab.on{color:var(--accent)}
+  .tabbar .tab .ico{font-size:19px}
+  .tabbar .fab{width:54px; height:54px; border-radius:50%; background:var(--accent); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:28px; margin-top:-22px;
+    box-shadow:0 6px 14px rgba(58,123,213,.45); cursor:pointer; flex:0 0 auto}
+  .fab-label{font-size:10px; color:var(--accent); text-align:center; margin-top:2px}
+
+  /* 공통 */
+  .muted{color:var(--sub); font-size:13px}
+  .section-label{font-size:12px; color:var(--sub); margin:18px 2px 8px; font-weight:600}
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:14px;
+    padding:13px 14px; box-shadow:var(--shadow); margin-bottom:10px; cursor:pointer}
+  .card .date{font-size:12px; color:var(--sub)}
+  .card .summary{font-size:15px; font-weight:600; margin:4px 0 6px; line-height:1.35}
+  .emo{font-size:12px; color:var(--ink); background:var(--accent-soft);
+    padding:3px 9px; border-radius:999px; display:inline-flex; gap:4px; align-items:center}
+
+  /* flashback (회고 화면의 주인공) */
+  .flashback{background:linear-gradient(135deg,#eef3fb,#f7f1ff); border:1px solid #e4e8f5;
+    border-radius:18px; padding:20px 18px; margin:4px 0 6px; cursor:pointer}
+  .flashback .tag{font-size:12px; color:var(--accent); font-weight:700; letter-spacing:.3px}
+  .flashback .q{font-size:18px; margin-top:10px; line-height:1.55; color:#3a3550; font-weight:600}
+  .flashback .sub{font-size:12px; color:var(--sub); margin-top:10px}
+
+  .empty{text-align:center; color:var(--sub); padding:24px 14px; font-size:14px; line-height:1.7;
+    border:1px dashed var(--line); border-radius:14px; margin-top:8px}
+  .empty .big{font-size:30px; display:block; margin-bottom:8px}
+  .ghostbtn{margin-top:14px; display:inline-block; padding:10px 18px; border:1px solid var(--accent);
+    color:var(--accent); border-radius:10px; font-weight:600; cursor:pointer; background:#fff}
+
+  /* 로그인 */
+  .login{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:30px; text-align:center; gap:8px}
+  .login .logo{font-size:46px}
+  .login h2{margin:6px 0 0; font-size:24px}
+  .login .slogan{color:var(--sub); font-size:14px; line-height:1.6}
+  .gbtn{margin-top:30px; width:100%; padding:14px; border:1px solid var(--line); border-radius:12px;
+    background:#fff; font-size:15px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:10px; cursor:pointer; box-shadow:var(--shadow)}
+  .gbtn .g{color:#4285F4; font-weight:800}
+
+  /* 폼 */
+  .field{margin-bottom:14px}
+  .field label{display:block; font-size:13px; font-weight:600; margin-bottom:6px}
+  .field textarea, .field input{width:100%; border:1px solid var(--line); border-radius:10px;
+    padding:10px; font-size:14px; font-family:inherit; resize:none; background:#fff}
+  .field textarea{min-height:60px}
+  .emogrid{display:flex; flex-wrap:wrap; gap:8px}
+  .emochip{border:1px solid var(--line); border-radius:999px; padding:8px 12px; font-size:13px;
+    background:#fff; cursor:pointer; user-select:none}
+  .emochip.sel{border-color:var(--accent); background:var(--accent-soft); color:var(--accent); font-weight:700}
+  .primary{width:100%; padding:14px; border:none; border-radius:12px; background:var(--accent);
+    color:#fff; font-size:16px; font-weight:700; cursor:pointer; margin-top:6px}
+
+  /* 상세 */
+  .detail-meta{display:flex; flex-direction:column; gap:6px; padding-bottom:12px; border-bottom:1px solid var(--line)}
+  .detail-block{margin-top:16px}
+  .detail-block .k{font-size:12px; color:var(--sub); font-weight:600; margin-bottom:4px}
+  .detail-block .v{font-size:15px; line-height:1.6}
+  .v2slot{margin-top:18px; padding:12px; border:1px dashed var(--line); border-radius:10px;
+    color:#a7b2b8; font-size:12px; text-align:center}
+  .danger{margin-top:22px; width:100%; padding:12px; border:1px solid #f0d4d4; background:#fff;
+    color:#cf5b5b; border-radius:10px; font-weight:600; cursor:pointer}
+
+  /* 토글/탭 */
+  .seg{display:flex; gap:4px; background:#eef2f4; border-radius:10px; padding:3px}
+  .seg button{flex:1; border:none; background:transparent; padding:6px; border-radius:8px;
+    font-size:13px; color:var(--sub); cursor:pointer}
+  .seg button.on{background:#fff; color:var(--ink); font-weight:700; box-shadow:var(--shadow)}
+  .periodtabs{display:flex; gap:6px; overflow-x:auto; padding:2px 0 4px}
+  .periodtabs button{white-space:nowrap; border:1px solid var(--line); background:#fff;
+    border-radius:999px; padding:5px 13px; font-size:12px; cursor:pointer; color:var(--sub)}
+  .periodtabs button.on{background:var(--ink); color:#fff; border-color:var(--ink)}
+  .periodnav{display:flex; align-items:center; justify-content:center; gap:20px; padding:16px 0 6px}
+  .periodnav .arrow{width:34px; height:34px; border-radius:50%; background:#fff; border:1px solid var(--line);
+    box-shadow:var(--shadow); display:flex; align-items:center; justify-content:center; color:var(--ink);
+    font-size:16px; cursor:pointer}
+  .periodnav .arrow:active{background:#f0f3f5}
+  .periodnav .lbl{font-weight:700; font-size:16px; min-width:118px; text-align:center}
+  .distro{display:flex; gap:8px; flex-wrap:wrap; margin-top:8px}
+  .distro .d{font-size:12px; background:#eef2f4; padding:5px 10px; border-radius:8px}
+  .divider{height:1px; background:var(--line); margin:18px 0 4px}
+
+  /* flashback (compact, 통합안용) */
+  .fb{background:linear-gradient(135deg,#eef3fb,#f7f1ff); border:1px solid #e4e8f5;
+    border-radius:16px; padding:16px 18px; cursor:pointer; margin-top:14px}
+  .fb .tag{font-size:11px; color:var(--accent); font-weight:700}
+  .fb .q{font-size:15px; color:#3a3550; font-weight:600; margin-top:6px; line-height:1.45}
+
+  /* 감정 요약 바 */
+  .sumbar{margin-top:26px}
+  .sumbar .txt{font-size:14px; color:var(--ink); margin-bottom:12px}
+  .sumbar .txt b{font-weight:700}
+  .bar{display:flex; height:20px; border-radius:999px; overflow:hidden}
+  .bar > i{display:block; height:100%}
+  .legend{display:flex; justify-content:space-between; gap:6px; margin-top:12px; font-size:11px;
+    color:var(--sub); white-space:nowrap}
+  .legend span{display:inline-flex; align-items:center}
+  .legend i{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px}
+
+  /* 뷰 토글 (타임라인⇄캘린더) */
+  .viewtoggle{display:flex; gap:4px; background:#eef2f4; border-radius:11px; padding:3px; margin:30px 0 10px}
+  .viewtoggle button{flex:1; border:none; background:transparent; padding:8px; border-radius:8px;
+    font-size:13px; color:var(--sub); cursor:pointer; font-weight:600}
+  .viewtoggle button.on{background:#fff; color:var(--ink); box-shadow:var(--shadow)}
+
+  /* 캘린더 (A안: 감정 색 점 여러 개, 최대 3 + 초과는 +) */
+  .cal{width:100%; border-collapse:collapse; table-layout:fixed; margin-top:4px}
+  .cal th{font-size:11px; color:var(--sub); font-weight:600; padding:4px 0; width:14.285%}
+  .cal td{width:14.285%; height:44px; text-align:center; vertical-align:top; padding-top:4px; overflow:hidden}
+  .cal td .d{display:inline-flex; flex-direction:column; align-items:center; gap:3px;
+    width:34px; padding:3px 0; border-radius:10px; cursor:pointer}
+  .cal td.has .d .num{font-weight:700}
+  .cal td .num{font-size:13px; line-height:1}
+  .cal td .dots{display:flex; gap:3px; justify-content:center; align-items:center; height:8px}
+  .cal td .dots i{width:6px; height:6px; border-radius:50%; display:inline-block}
+  .cal td .dots .plus{font-size:9px; color:var(--sub); line-height:1; margin-left:1px}
+  .cal td.today .d{background:var(--accent); color:#fff}
+  .cal td.sel .d{outline:2px solid var(--accent)}
+  .cal td.off .num{color:#c4ccd1}
+
+  /* 타임라인 */
+  .tl{position:relative; margin-top:12px; padding-left:26px}
+  .tl::before{content:""; position:absolute; left:9px; top:6px; bottom:6px; width:2px; background:var(--line)}
+  .tl .node{position:relative; margin-bottom:18px; cursor:pointer}
+  .tl .node .dot{position:absolute; left:-26px; top:2px; width:20px; height:20px; border-radius:50%;
+    border:3px solid #fff; box-shadow:0 0 0 1px var(--line)}
+  .tl .node .date{font-size:11px; color:var(--sub)}
+  .tl .node .summary{font-size:14px; font-weight:600; margin-top:2px; line-height:1.4}
+  .tl .node .emo{margin-top:5px}
+
+  /* 설정 토글 */
+  .setting-row{display:flex; align-items:center; padding:14px 2px; border-bottom:1px solid var(--line)}
+  .setting-row .name{font-weight:600}
+  .setting-row .kind{font-size:12px; color:var(--sub); margin-left:8px}
+  .setting-row .sp{flex:1}
+  .switch{width:44px; height:26px; border-radius:999px; background:#cdd6db; position:relative; cursor:pointer; transition:.15s}
+  .switch.on{background:var(--accent)}
+  .switch::after{content:""; position:absolute; top:3px; left:3px; width:20px; height:20px;
+    border-radius:50%; background:#fff; transition:.15s}
+  .switch.on::after{left:21px}
+
+  .caption{width:100%; text-align:center; font-size:12px; color:#5b676d; margin-top:-10px; line-height:1.6}
+</style>
+</head>
+<body>
+  <div class="intro">
+    <h1>Ripple — UX 목업 · 구조 C</h1>
+    <p>"회고"가 첫 화면 · 홈 탭 제거 · 기록은 부가(가운데 +) · 화면을 눌러 이동해보세요</p>
+  </div>
+
+  <div class="phone" id="phone">
+    <div class="notch"></div>
+
+    <!-- S0 로그인 -->
+    <div class="screen" id="s-login">
+      <div class="login">
+        <div class="logo">🌊</div>
+        <h2 class="brand">Ripple</h2>
+        <div class="slogan">결정을 적고,<br/>시간이 지나 다시 마주한다.</div>
+        <button class="gbtn" onclick="go('s-retro')"><span class="g">G</span> Google로 시작</button>
+      </div>
+    </div>
+
+    <!-- ★ 회고 = 첫 화면 (앱의 얼굴) -->
+    <div class="screen" id="s-retro">
+      <div class="hdr">
+        <div class="title">되돌아보기</div>
+        <div class="icon" onclick="toggleEmpty()" title="빈 상태 미리보기">👁</div>
+        <div class="icon" onclick="go('s-settings')">⚙</div>
+      </div>
+      <div class="body">
+
+        <!-- 데이터 있을 때 (통합안: 기간탭 → flashback → 감정요약바 → 타임라인⇄캘린더 토글) -->
+        <div id="retro-filled">
+          <div class="periodtabs">
+            <button onclick="pick(this)">일간</button>
+            <button onclick="pick(this)">주간</button>
+            <button class="on" onclick="pick(this)">월간</button>
+            <button onclick="pick(this)">연간</button>
+          </div>
+          <div class="periodnav"><div class="arrow">‹</div><div class="lbl">2026년 6월</div><div class="arrow">›</div></div>
+
+          <!-- 1) flashback (compact) -->
+          <div class="fb" onclick="goDetail('s-retro')">
+            <div class="tag">✦ 1년 전 오늘</div>
+            <div class="q">"이직을 결심했던 날. 두려움 속에서도 한 걸음 내디뎠죠."</div>
+          </div>
+
+          <!-- 2) 감정 요약 바 -->
+          <div class="sumbar">
+            <div class="txt">이번 달 <b>12개 결정</b> · 주로 <b>✨ 설렘</b></div>
+            <div class="bar">
+              <i style="width:25%; background:var(--c-excite)"></i>
+              <i style="width:25%; background:var(--c-calm)"></i>
+              <i style="width:25%; background:var(--c-hope)"></i>
+              <i style="width:17%; background:var(--c-fear)"></i>
+              <i style="width:8%; background:var(--c-conf)"></i>
+            </div>
+            <div class="legend">
+              <span><i style="background:var(--c-excite)"></i>설렘 3</span>
+              <span><i style="background:var(--c-calm)"></i>평온 3</span>
+              <span><i style="background:var(--c-hope)"></i>희망 3</span>
+              <span><i style="background:var(--c-fear)"></i>두려움 2</span>
+              <span><i style="background:var(--c-conf)"></i>확신 1</span>
+            </div>
+          </div>
+
+          <!-- 3) 뷰 토글 (기본=타임라인) -->
+          <div class="viewtoggle">
+            <button class="on" id="v-tl" onclick="setView('tl')">📜 타임라인</button>
+            <button id="v-cal" onclick="setView('cal')">📅 캘린더</button>
+          </div>
+
+          <!-- 캘린더 뷰 -->
+          <div id="view-cal" style="display:none">
+            <table class="cal" id="cal-grid"></table>
+            <div class="section-label" id="cal-daylabel">6월 6일의 결정</div>
+            <div id="cal-daylist"></div>
+          </div>
+
+          <!-- 타임라인 뷰 (기본) -->
+          <div id="view-tl">
+            <div class="tl">
+              <div class="node" onclick="goDetail('s-retro')"><div class="dot" style="background:var(--c-excite)"></div><div class="date">6월 6일</div><div class="summary">새 사이드 프로젝트를 시작하기로 했다</div><div><span class="emo">✨ 설렘</span></div></div>
+              <div class="node" onclick="goDetail('s-retro')"><div class="dot" style="background:var(--c-hope)"></div><div class="date">6월 6일</div><div class="summary">아침마다 30분 달리기로 정함</div><div><span class="emo">🌱 희망</span></div></div>
+              <div class="node" onclick="goDetail('s-retro')"><div class="dot" style="background:var(--c-calm)"></div><div class="date">6월 2일</div><div class="summary">노트북을 새로 사지 않기로 했다</div><div><span class="emo">🌊 평온</span></div></div>
+              <div class="node" onclick="goDetail('s-retro')"><div class="dot" style="background:var(--c-fear)"></div><div class="date">5월 28일</div><div class="summary">이직 제안을 수락했다</div><div><span class="emo">😨 두려움</span></div></div>
+            </div>
+          </div>
+
+          <div class="v2slot" style="margin-top:18px">AI 회고 코멘트 · 이달의 결정 패턴 분석 · (v2)</div>
+        </div>
+
+        <!-- 데이터 없을 때(가입 직후) -->
+        <div id="retro-empty" style="display:none">
+          <div class="empty">
+            <span class="big">🌱</span>
+            아직 되돌아볼 결정이 없어요.<br/>
+            첫 결정을 남기면 시간이 지나<br/>이곳에서 다시 마주하게 됩니다.
+            <div><span class="ghostbtn" onclick="go('s-new')">첫 결정 기록하기</span></div>
+          </div>
+        </div>
+
+      </div>
+      <div class="tabbar">
+        <div class="tab on"><span class="ico">🌙</span>회고</div>
+        <div style="text-align:center"><div class="fab" onclick="go('s-new')">+</div><div class="fab-label">기록</div></div>
+        <div class="tab" onclick="go('s-list')"><span class="ico">📋</span>목록</div>
+      </div>
+    </div>
+
+    <!-- 결정 기록 -->
+    <div class="screen" id="s-new">
+      <div class="hdr">
+        <div class="back" onclick="go('s-retro')">←</div>
+        <div class="title">결정 기록</div>
+      </div>
+      <div class="body">
+        <div class="field"><label>상황</label><textarea placeholder="어떤 맥락에서 이 결정이 생겼나요?"></textarea></div>
+        <div class="field"><label>결정</label><textarea placeholder="무엇을 선택했나요?"></textarea></div>
+        <div class="field"><label>이유</label><textarea placeholder="그때의 나는 왜 골랐나요?"></textarea></div>
+        <div class="field">
+          <label>그때의 감정</label>
+          <div class="emogrid" id="emogrid">
+            <span class="emochip" onclick="pickEmo(this)">😌 확신</span>
+            <span class="emochip sel" onclick="pickEmo(this)">✨ 설렘</span>
+            <span class="emochip" onclick="pickEmo(this)">🌊 평온</span>
+            <span class="emochip" onclick="pickEmo(this)">😮‍💨 후련함</span>
+            <span class="emochip" onclick="pickEmo(this)">🌱 희망</span>
+            <span class="emochip" onclick="pickEmo(this)">🤔 망설임</span>
+            <span class="emochip" onclick="pickEmo(this)">😟 불안</span>
+            <span class="emochip" onclick="pickEmo(this)">😨 두려움</span>
+          </div>
+        </div>
+        <div class="field"><label>한마디 (선택)</label><input placeholder="감정 한마디"/></div>
+        <button class="primary" onclick="go('s-list')">저장</button>
+        <div class="muted" style="text-align:center; margin-top:10px; font-size:12px">저장하면 목록으로 이동</div>
+      </div>
+    </div>
+
+    <!-- 결정 목록(아카이브) -->
+    <div class="screen" id="s-list">
+      <div class="hdr">
+        <div class="title">내 결정</div>
+        <div class="seg" style="width:96px">
+          <button class="on" id="seg-m" onclick="setGroup('m')">월</button>
+          <button id="seg-d" onclick="setGroup('d')">일</button>
+        </div>
+        <div class="icon" onclick="go('s-settings')">⚙</div>
+      </div>
+      <div class="body">
+        <div id="list-month">
+          <div class="section-label">2026년 6월</div>
+          <div class="card" onclick="goDetail('s-list')"><div class="date">6/6</div><div class="summary">새 사이드 프로젝트를 시작하기로 했다</div><span class="emo">✨ 설렘</span></div>
+          <div class="card" onclick="goDetail('s-list')"><div class="date">6/6</div><div class="summary">아침마다 30분 달리기로 정함</div><span class="emo">🌱 희망</span></div>
+          <div class="card" onclick="goDetail('s-list')"><div class="date">6/2</div><div class="summary">노트북을 새로 사지 않기로 했다</div><span class="emo">🌊 평온</span></div>
+          <div class="section-label">2026년 5월</div>
+          <div class="card" onclick="goDetail('s-list')"><div class="date">5/28</div><div class="summary">이직 제안을 수락했다</div><span class="emo">😨 두려움</span></div>
+        </div>
+        <div id="list-day" style="display:none">
+          <div class="section-label">6월 6일 (오늘)</div>
+          <div class="card" onclick="goDetail('s-list')"><div class="date">오전 9:14</div><div class="summary">새 사이드 프로젝트를 시작하기로 했다</div><span class="emo">✨ 설렘</span></div>
+          <div class="card" onclick="goDetail('s-list')"><div class="date">오전 7:30</div><div class="summary">아침마다 30분 달리기로 정함</div><span class="emo">🌱 희망</span></div>
+          <div class="section-label">6월 2일</div>
+          <div class="card" onclick="goDetail('s-list')"><div class="date">오후 1:05</div><div class="summary">노트북을 새로 사지 않기로 했다</div><span class="emo">🌊 평온</span></div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="tab" onclick="go('s-retro')"><span class="ico">🌙</span>회고</div>
+        <div style="text-align:center"><div class="fab" onclick="go('s-new')">+</div><div class="fab-label">기록</div></div>
+        <div class="tab on"><span class="ico">📋</span>목록</div>
+      </div>
+    </div>
+
+    <!-- 결정 상세 -->
+    <div class="screen" id="s-detail">
+      <div class="hdr">
+        <div class="back" onclick="go(detailReturn)">←</div>
+        <div class="title">결정</div>
+        <div class="icon" onclick="if(confirm('이 결정을 삭제할까요? (복구 불가)')) go(detailReturn)">🗑</div>
+      </div>
+      <div class="body">
+        <div class="detail-meta">
+          <div class="muted">2026.06.06 오전 9:14</div>
+          <div><span class="emo">✨ 설렘</span> <span class="muted" style="margin-left:6px">"오랜만에 두근거린다"</span></div>
+        </div>
+        <div class="detail-block"><div class="k">상황</div><div class="v">계속 미뤄온 아이디어가 있었고, 이번 분기엔 여유가 좀 생겼다.</div></div>
+        <div class="detail-block"><div class="k">결정</div><div class="v">새 사이드 프로젝트를 시작하기로 했다.</div></div>
+        <div class="detail-block"><div class="k">이유</div><div class="v">미루면 영영 안 할 것 같았고, 작게라도 만들어보고 싶었다.</div></div>
+        <div class="v2slot">N개월 후 "이 결정, 어땠나요?" 결과 평가 · (v2)</div>
+        <button class="danger" onclick="if(confirm('이 결정을 삭제할까요? (복구 불가)')) go(detailReturn)">삭제</button>
+        <div class="muted" style="text-align:center; margin-top:10px; font-size:12px">수정은 없음 — 그때의 기록 보존 (MVP)</div>
+      </div>
+    </div>
+
+    <!-- 회고 설정 -->
+    <div class="screen" id="s-settings">
+      <div class="hdr">
+        <div class="back" onclick="go('s-retro')">←</div>
+        <div class="title">회고 설정</div>
+      </div>
+      <div class="body">
+        <div class="muted">어떤 주기로 회고할까요?</div>
+        <div class="setting-row"><span class="name">일간</span><span class="kind">체크인</span><span class="sp"></span><span class="switch" onclick="this.classList.toggle('on')"></span></div>
+        <div class="setting-row"><span class="name">주간</span><span class="kind">체크인</span><span class="sp"></span><span class="switch" onclick="this.classList.toggle('on')"></span></div>
+        <div class="setting-row"><span class="name">월간</span><span class="kind">회고/감성</span><span class="sp"></span><span class="switch on" onclick="this.classList.toggle('on')"></span></div>
+        <div class="setting-row"><span class="name">연간</span><span class="kind">회고/감성</span><span class="sp"></span><span class="switch on" onclick="this.classList.toggle('on')"></span></div>
+        <div class="v2slot" style="margin-top:18px">+ 커스텀 주기 추가 · 알림 받기 · (v2)</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="caption">
+    회고: 기간탭 → flashback → 감정요약바 → 타임라인⇄캘린더 토글(기본=타임라인)<br/>
+    캘린더는 하루 결정 수만큼 감정 색 점(최대 3, 초과 +) · 날짜 탭 → 그날 결정 카드<br/>
+    상세 뒤로가기는 온 곳으로 · (+)기록 저장 → 목록 · 회고 헤더 👁 = 빈 상태 미리보기
+  </div>
+
+<script>
+  var detailReturn = 's-list'; // 상세에서 뒤로가기 시 돌아갈 곳(온 곳 기억)
+  function go(id){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelector('#'+id+' .body')?.scrollTo(0,0);
+  }
+  function goDetail(from){ detailReturn = from; go('s-detail'); }
+  function pickEmo(el){
+    document.querySelectorAll('#emogrid .emochip').forEach(c=>c.classList.remove('sel'));
+    el.classList.add('sel');
+  }
+  function pick(el){
+    el.parentNode.querySelectorAll('button').forEach(b=>b.classList.remove('on'));
+    el.classList.add('on');
+  }
+  function setGroup(g){
+    document.getElementById('seg-m').classList.toggle('on', g==='m');
+    document.getElementById('seg-d').classList.toggle('on', g==='d');
+    document.getElementById('list-month').style.display = g==='m' ? 'block':'none';
+    document.getElementById('list-day').style.display   = g==='d' ? 'block':'none';
+  }
+  function toggleEmpty(){
+    var f=document.getElementById('retro-filled'), e=document.getElementById('retro-empty');
+    var showEmpty = f.style.display!=='none';
+    f.style.display = showEmpty ? 'none':'block';
+    e.style.display = showEmpty ? 'block':'none';
+  }
+
+  /* === 회고 화면: 캘린더(A안) + 뷰 토글 + 날짜 선택 === */
+  var COLOR={conf:'var(--c-conf)',excite:'var(--c-excite)',calm:'var(--c-calm)',relief:'var(--c-relief)',hope:'var(--c-hope)',hesit:'var(--c-hesit)',anx:'var(--c-anx)',fear:'var(--c-fear)'};
+  // 하루별 결정들의 감정 코드 (개수 = 배열 길이) → 캘린더 점
+  var EMO = { 2:['calm'], 6:['excite','hope'], 9:['conf'], 12:['excite','calm','hope','fear'], 17:['hope'], 22:['fear','calm','excite'] };
+  var TODAY=7;
+  var dayData = {
+    2:{label:"6월 2일의 결정", cards:[["오후 1:05","노트북을 새로 사지 않기로 했다","🌊 평온"]]},
+    6:{label:"6월 6일의 결정", cards:[["오전 9:14","새 사이드 프로젝트를 시작하기로 했다","✨ 설렘"],["오전 7:30","아침마다 30분 달리기로 정함","🌱 희망"]]},
+    9:{label:"6월 9일의 결정", cards:[["오후 8:00","주말 모임 약속을 미뤘다","😌 확신"]]},
+    12:{label:"6월 12일의 결정", cards:[["오후 9:10","이사할 동네를 정했다","✨ 설렘"],["오후 2:00","계약을 하루 더 미뤘다","🌊 평온"],["오전 11:00","대출 한도를 알아보기로 했다","🌱 희망"],["오전 8:20","회사에 재택을 요청했다","😨 두려움"]]},
+    17:{label:"6월 17일의 결정", cards:[["오전 11:20","새 강의를 등록했다","🌱 희망"]]},
+    22:{label:"6월 22일의 결정", cards:[["오후 3:40","큰 지출을 보류했다","😨 두려움"],["오후 1:00","여행지를 바꿨다","🌊 평온"],["오전 10:00","팀 이동을 신청했다","✨ 설렘"]]}
+  };
+  // 2026년 6월: 1일=월요일, 0=이전달 31, 1..30=6월, 31~=다음달
+  function cellNum(i){ if(i===0)return{n:31,off:true}; if(i<=30)return{n:i,off:false}; return{n:i-30,off:true}; }
+  function buildCal(){
+    var grid=document.getElementById('cal-grid'); if(!grid) return;
+    var html='<tr><th>일</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th>토</th></tr>';
+    for(var w=0; w<6; w++){
+      html+='<tr>';
+      for(var d=0; d<7; d++){
+        var i=w*7+d, c=cellNum(i), june=!c.off, arr=june?EMO[c.n]:null;
+        var cls=[]; if(c.off)cls.push('off'); if(arr)cls.push('has');
+        if(june&&c.n===TODAY)cls.push('today'); if(c.n===6&&june)cls.push('sel');
+        var dots='';
+        if(arr){
+          var pts=arr.slice(0,3).map(function(e){return '<i style="background:'+COLOR[e]+'"></i>';}).join('');
+          dots='<span class="dots">'+pts+(arr.length>3?'<span class="plus">+</span>':'')+'</span>';
+        }
+        var click=arr?(' onclick="selDay(this,'+c.n+')"'):'';
+        html+='<td class="'+cls.join(' ')+'"><div class="d"'+click+'><span class="num">'+c.n+'</span>'+dots+'</div></td>';
+      }
+      html+='</tr>';
+    }
+    grid.innerHTML=html;
+  }
+  function renderDay(day){
+    var d=dayData[day]; if(!d) return;
+    document.getElementById('cal-daylabel').textContent=d.label;
+    var html=''; d.cards.forEach(function(c){
+      html+='<div class="card" onclick="goDetail(\'s-retro\')"><div class="date">'+c[0]+'</div><div class="summary">'+c[1]+'</div><span class="emo">'+c[2]+'</span></div>';
+    });
+    document.getElementById('cal-daylist').innerHTML=html;
+  }
+  function selDay(el, day){
+    document.querySelectorAll('.cal td').forEach(function(td){td.classList.remove('sel');});
+    el.closest('td').classList.add('sel');
+    renderDay(day);
+  }
+  function setView(v){
+    document.getElementById('v-cal').classList.toggle('on', v==='cal');
+    document.getElementById('v-tl').classList.toggle('on', v==='tl');
+    document.getElementById('view-cal').style.display = v==='cal'?'block':'none';
+    document.getElementById('view-tl').style.display  = v==='tl'?'block':'none';
+  }
+  buildCal();
+  renderDay(6);
+
+  go('s-login'); // 시작 화면
+</script>
+</body>
+</html>

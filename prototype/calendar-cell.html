@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ripple — 캘린더 셀 A/B/C 비교</title>
+<!-- 버리는 목업. 하루에 결정 여러 개일 때 셀 표기 방식 3안 비교. 더미 데이터. -->
+<style>
+  :root{
+    --bg:#f4f6f8; --surface:#fff; --ink:#1f2a30; --sub:#6b7a82; --line:#e6ebee; --accent:#3a7bd5; --shadow:0 2px 10px rgba(31,42,48,.06);
+    --c-conf:#7d8aa8; --c-excite:#f3b14b; --c-calm:#5aa9e6; --c-relief:#9aa7b0; --c-hope:#8fbf73; --c-hesit:#c9a24b; --c-anx:#d39a55; --c-fear:#c47b7b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:#dde3e8; color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif; padding:28px 16px}
+  .head{text-align:center; margin-bottom:6px}
+  .head h1{margin:0 0 4px; font-size:20px}
+  .head p{margin:0; font-size:13px; color:#5b676d}
+  .legendbar{display:flex; gap:14px; flex-wrap:wrap; justify-content:center; margin:14px auto 22px; font-size:12px; color:#48555c}
+  .legendbar i{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:middle}
+  .row{display:flex; flex-wrap:wrap; gap:26px; justify-content:center; align-items:flex-start}
+  .col{width:330px}
+  .label{font-weight:700; font-size:15px; margin-bottom:2px}
+  .desc{font-size:12px; color:#5b676d; margin-bottom:10px; line-height:1.5; min-height:50px}
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:14px 12px; box-shadow:var(--shadow)}
+
+  table{width:100%; border-collapse:collapse; table-layout:fixed}
+  th{font-size:11px; color:var(--sub); font-weight:600; padding:4px 0; width:14.285%}
+  td{width:14.285%; height:46px; text-align:center; vertical-align:top; padding-top:5px; position:relative; overflow:hidden}
+  .num{font-size:13px; line-height:1}
+  td.today .num{display:inline-flex; width:22px; height:22px; align-items:center; justify-content:center; background:var(--accent); color:#fff; border-radius:50%; font-weight:700}
+  td.off .num{color:#c4ccd1}
+  td.has .num{font-weight:700}
+
+  /* A: 감정 점 여러 개 */
+  .dots{display:flex; gap:3px; justify-content:center; align-items:center; margin-top:5px; height:10px}
+  .dots i{width:7px; height:7px; border-radius:50%; display:inline-block}
+  .dots .plus{font-size:10px; color:var(--sub); line-height:1; margin-left:1px}
+
+  /* B: 대표 감정 점 + 개수 배지 */
+  .onedot{margin-top:6px; height:10px; display:flex; justify-content:center}
+  .onedot i{width:8px; height:8px; border-radius:50%}
+  .badge{position:absolute; top:2px; right:6px; min-width:15px; height:15px; padding:0 3px; border-radius:999px;
+    background:var(--ink); color:#fff; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center}
+
+  /* C: 개수 배지만 */
+  .countpill{margin-top:5px; display:flex; justify-content:center; height:18px}
+  .countpill i{min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:var(--accent); color:#fff;
+    font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center}
+</style>
+</head>
+<body>
+  <div class="head">
+    <h1>Ripple — 캘린더 셀 표기 3안 비교</h1>
+    <p>같은 6월 데이터 · 6일(2개) · 12일(4개) · 22일(3개) 처럼 하루 여러 결정이 섞여 있음</p>
+  </div>
+  <div class="legendbar">
+    <span><i style="background:var(--c-conf)"></i>확신</span>
+    <span><i style="background:var(--c-excite)"></i>설렘</span>
+    <span><i style="background:var(--c-calm)"></i>평온</span>
+    <span><i style="background:var(--c-hope)"></i>희망</span>
+    <span><i style="background:var(--c-fear)"></i>두려움</span>
+  </div>
+
+  <div class="row">
+    <div class="col">
+      <div class="label">A · 감정 점 여러 개</div>
+      <div class="desc">결정 수만큼 감정 색 점(최대 3, 그 이상 +). 감정·개수 둘 다 보임. 이 앱의 감성과 가장 잘 맞음.</div>
+      <div class="card"><table id="cal-a"></table></div>
+    </div>
+    <div class="col">
+      <div class="label">B · 대표 감정 + 개수 배지</div>
+      <div class="desc">점은 그날 대표 감정 1색, 2개 이상이면 우측 위 숫자 배지. 감정·개수가 가장 또렷하게 분리.</div>
+      <div class="card"><table id="cal-b"></table></div>
+    </div>
+    <div class="col">
+      <div class="label">C · 개수 숫자만</div>
+      <div class="desc">감정 없이 결정 개수만 색 배지로. 가장 단순·정확하지만 감정 정보는 사라짐.</div>
+      <div class="card"><table id="cal-c"></table></div>
+    </div>
+  </div>
+
+<script>
+  var COLOR={conf:'var(--c-conf)',excite:'var(--c-excite)',calm:'var(--c-calm)',relief:'var(--c-relief)',hope:'var(--c-hope)',hesit:'var(--c-hesit)',anx:'var(--c-anx)',fear:'var(--c-fear)'};
+  // 하루별 결정들의 감정 (개수 = 배열 길이)
+  var DATA={
+    2:['calm'],
+    6:['excite','hope'],
+    9:['conf'],
+    12:['excite','calm','hope','fear'],
+    17:['hope'],
+    22:['fear','calm','excite']
+  };
+  var TODAY=7;
+  // 2026년 6월: 1일=월요일. 셀 인덱스 0=일(이전달 31), 1..30=6월, 31~=다음달
+  function cellNum(i){ if(i===0)return{n:31,off:true}; if(i<=30)return{n:i,off:false}; return{n:i-30,off:true}; }
+
+  function dominant(arr){ var m={},best=arr[0],bc=0; arr.forEach(e=>{m[e]=(m[e]||0)+1; if(m[e]>bc){bc=m[e];best=e;}}); return best; }
+
+  function marker(mode, day){
+    var arr=DATA[day]; if(!arr) return '';
+    if(mode==='a'){
+      var dots=arr.slice(0,3).map(e=>'<i style="background:'+COLOR[e]+'"></i>').join('');
+      var plus=arr.length>3?'<span class="plus">+</span>':'';
+      return '<div class="dots">'+dots+plus+'</div>';
+    }
+    if(mode==='b'){
+      var dot='<div class="onedot"><i style="background:'+COLOR[dominant(arr)]+'"></i></div>';
+      var badge=arr.length>=2?'<div class="badge">'+arr.length+'</div>':'';
+      return dot+badge;
+    }
+    // c
+    return '<div class="countpill"><i>'+arr.length+'</i></div>';
+  }
+
+  function build(id, mode){
+    var html='<tr><th>일</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th>토</th></tr>';
+    for(var w=0; w<6; w++){
+      html+='<tr>';
+      for(var d=0; d<7; d++){
+        var i=w*7+d, c=cellNum(i);
+        var cls=[]; if(c.off)cls.push('off');
+        var isJune=!c.off;
+        if(isJune && DATA[c.n]) cls.push('has');
+        if(isJune && c.n===TODAY) cls.push('today');
+        var mk = (isJune)? marker(mode,c.n) : '';
+        html+='<td class="'+cls.join(' ')+'"><div class="num">'+c.n+'</div>'+mk+'</td>';
+      }
+      html+='</tr>';
+    }
+    document.getElementById(id).innerHTML=html;
+  }
+  build('cal-a','a'); build('cal-b','b'); build('cal-c','c');
+</script>
+</body>
+</html>
