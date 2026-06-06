@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: ripple-core
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ripple
+    username: ripple
+    password: ripple
+  jpa:
+    hibernate:
+      ddl-auto: validate   # 스키마는 Flyway가 관리, JPA는 검증만
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+  flyway:
+    enabled: true

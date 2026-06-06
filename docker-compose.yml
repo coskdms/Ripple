@@ -1,0 +1,23 @@
+services:
+  db:
+    # MVP는 일반 postgres. v2에서 RAG(pgvector) 도입 시
+    # 이미지를 pgvector/pgvector:pg16 으로 교체하면 됨.
+    image: postgres:16
+    container_name: ripple-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ripple}
+      POSTGRES_USER: ${POSTGRES_USER:-ripple}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ripple}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ripple-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ripple} -d ${POSTGRES_DB:-ripple}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  ripple-db-data:

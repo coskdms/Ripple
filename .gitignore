@@ -1,0 +1,20 @@
+# 환경 변수 (비밀값) — 절대 커밋 금지
+.env
+
+# IntelliJ / VS Code
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+
+# 빌드 산출물 (각 하위 프로젝트 추가 시 확장)
+# core/ (Java)
+target/
+build/
+*.class
+
+# bff/ web/ (Node)
+node_modules/
+dist/
+*.log
