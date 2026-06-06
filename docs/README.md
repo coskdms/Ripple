@@ -16,15 +16,16 @@ docs/
 ### planning — 기획
 - [overview.md](planning/overview.md) — 프로젝트 개요, 핵심 컨셉(결정 6항목/회고 주기), 목표 설정 구조
 - [mvp-scope.md](planning/mvp-scope.md) — MVP 범위 (만들 것 / 나중에)
+- [ux-wireframe.md](planning/ux-wireframe.md) — 화면 와이어프레임(모바일 우선), 화면 목록·이동 흐름·레이아웃
 - [roadmap.md](planning/roadmap.md) — 개발 준비 체크리스트, 다음 할 일
 
 ### architecture — 설계
 - [tech-stack.md](architecture/tech-stack.md) — 기술 스택, 모노레포, 헥사고날 + BFF 아키텍처
-- [project-structure.md](architecture/project-structure.md) — 폴더 구조 (core 헥사고날 도메인우선 / bff / web)
+- [project-structure.md](architecture/project-structure.md) — 폴더 구조 (frontend Next.js+BFF / backend 헥사고날 도메인우선)
 - [db-schema.md](architecture/db-schema.md) — DB 스키마 (app_user/decision/retrospective_setting)
-- [api-design.md](architecture/api-design.md) — 코어 API + BFF API
+- [api-design.md](architecture/api-design.md) — backend API + BFF API
 - [ai-strategy.md](architecture/ai-strategy.md) — Gemini→Claude 전환, RAG/pgvector
-- [dev-setup.md](architecture/dev-setup.md) — 개발 환경 셋업 (DB/Spring/React/BFF 초기화)
+- [dev-setup.md](architecture/dev-setup.md) — 개발 환경 셋업 (DB/backend Spring/frontend Next.js 초기화)
 
 ### convention — 규칙
 - [coding-rules.md](convention/coding-rules.md) — AI agent 공통 코딩 룰 (도구 중립)
